@@ -40,7 +40,6 @@ apis = {
 	-- "arc";
 	"circle";
 	"ellipse";
-	"image";
 	"line";
 	"point";
 	-- "polygon";
