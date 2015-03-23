@@ -1,0 +1,553 @@
+ -- draw 1.0.2 by Benedict Allen
+ --[[ The MIT License (MIT)
+
+Copyright (c) 2015 Benedict Allen
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+ ]]
+local pname = "draw"
+local environment = setmetatable( {}, { __index = getfenv() } )
+environment._G = environment
+local files = {}
+local function runfile( file )
+	if files[file] then
+		local f, err = loadstring( files[file], "[" .. pname .. "] " .. file .. ".lua" )
+		if not f then
+			error( err, 0 )
+		end
+		local env = setmetatable( {}, { __index = environment } )
+		setfenv( f, env )
+		local ok, data = pcall( f )
+		if not ok then
+			error( data, 0 )
+		end
+		if data == nil then
+			data = {}
+			for k, v in pairs( env ) do
+				data[k] = v
+			end
+		end
+		environment[file] = data
+		return data
+	else
+		return error "file not found"
+	end
+end
+local dependencies = {
+	{ name = "sutils", path = "sutils", url = "https://raw.githubusercontent.com/awsumben13/Misc-Packages/master/build/sutils" };
+	{ name = "drawable", path = "drawable", url = "https://raw.githubusercontent.com/awsumben13/Graphics-Packages/master/build/drawable" };
+}local package = dofile ".package/api.lua"
+for i = 1, #dependencies do
+	if not package.exists( dependencies[i].path ) then
+		if not dependencies[i].url or not package.install( dependencies[i].path, dependencies[i].url ) then
+			printError( "Requires package " .. dependencies[i].name .. " and cannot download." )
+			return
+		end
+	end
+	environment[dependencies[i].name] = package.load( dependencies[i].path )
+end
+files["checkArg"] = "\
+local _t = type\
+local function type( ob )\
+	local t = _t( ob )\
+	pcall( function()\
+		local mt = getmetatable( ob )\
+		t = _t( mt.__type ) == \"string\" and mt.__type or t\
+	end )\
+	return t\
+end\
+\
+return function( values, types )\
+	for k, v in pairs( types ) do\
+		if type( v ) == \"table\" then\
+			local ok = false\
+			for i = 1, #v do\
+				if type( values[k] ) == v[i] then\
+					ok = true\
+					break\
+				end\
+			end\
+			if not ok then\
+				error( \"expected <\" .. v[1] .. \"> \" .. k .. \", got \" .. type( values[k] ), 3 )\
+			end\
+		else\
+			if type( values[k] ) ~= v then\
+				error( \"expected <\" .. v .. \"> \" .. k .. \", got \" .. type( values[k] ), 3 )\
+			end\
+		end\
+	end\
+end"
+runfile "checkArg"
+local public = {}
+files["circle"] = "\
+local correction = .67\
+\
+local function filledcirc( x, y, r, bc, tc, char, target )\
+\
+	local r2 = ( r + .5 ) ^ 2\
+	for _x = x - r, x + r do\
+		for _y = -r, r do\
+			if ( ( x - _x ) ^ 2 + ( _y / correction ) ^ 2 ) <= r2 then\
+				target:setPixel( _x, y + _y, bc, tc, char )\
+			end\
+		end\
+	end\
+end\
+\
+local function outlinecirc( x, y, r, bc, tc, char, target )\
+\
+	local function pixel( x, y )\
+		target:setPixel( math.floor( x + .5 ), math.floor( y + .5 ), bc, tc, char )\
+	end\
+\
+	local c = 2 * math.pi * r\
+	local n = 2 * math.pi * 2 / c\
+	local c8 = c / 8\
+	for i = 0, c8 do\
+		local _x, _y = math.sin( i * n ) * r, math.cos( i * n ) * r\
+		pixel( x + _x, y + _y * correction )\
+		pixel( x + _x, y - _y * correction )\
+		pixel( x - _x, y + _y * correction )\
+		pixel( x - _x, y - _y * correction )\
+		pixel( x + _y, y + _x * correction )\
+		pixel( x - _y, y + _x * correction )\
+		pixel( x + _y, y - _x * correction )\
+		pixel( x - _y, y - _x * correction )\
+	end\
+end\
+\
+return function( options )\
+	--[[\
+		number x\
+		number y\
+		number radius\
+		number colour\
+		number textColour\
+		string character\
+		boolean filled\
+		drawable/buffer target\
+	]]\
+\
+	options.radius = options.radius or options.r\
+	options.colour = options.colour or options.bc or options.col\
+	options.textColour = options.textColour or options.tc or options.colour\
+	options.character = options.character or options.char or \" \"\
+	options.target = options.target or drawable.current()\
+\
+	checkArg( options, {\
+		x = \"number\";\
+		y = \"number\";\
+		radius = \"number\";\
+		colour = \"number\";\
+		textColour = \"number\";\
+		character = \"string\";\
+		target = { \"drawable\", \"buffer\" };\
+	} )\
+\
+	if options.filled then\
+		filledcirc( options.x, options.y, options.radius, options.colour, options.textColour, options.character, options.target )\
+	else\
+		outlinecirc( options.x, options.y, options.radius, options.colour, options.textColour, options.character, options.target )\
+	end\
+end"
+files["ellipse"] = "\
+local function filledellipse( x, y, w, h, bc, tc, char, target )\
+	local ww, hh, x0, dx = w ^ 2, h ^ 2, w, 0\
+	local hhww = hh*ww\
+	for _x = -w, w do\
+		target:setPixel( x + _x, y, bc, tc, char )\
+	end\
+	for _y = 1, h do\
+		local x1 = x0 - (dx - 1)\
+		for i = x1, 0, -1 do\
+			if (x1*x1*hh + _y*_y*ww <= hhww) then\
+				break\
+			end\
+			x1 = x1 - 1\
+		end\
+		dx, x0 = x0 - x1, x1\
+		for _x = -x0, x0 do\
+			target:setPixel( x + _x, y - _y, bc, tc, char )\
+			target:setPixel( x + _x, y + _y, bc, tc, char )\
+		end\
+	end\
+end\
+\
+local function outlineellipse( x, y, w, h, bc, tc, char, target )\
+	local function pixel( x, y )\
+		target:setPixel( x, y, bc, tc, char )\
+	end\
+\
+	local rx, ry = w / 2, h / 2\
+	local xc, yc, rxSq, rySq, x, y = x + rx, y + ry, rx ^ 2, ry ^ 2, 0, ry\
+	local px, py = 0, 2 * rxSq * y\
+	pixel( xc+x, yc+y )\
+	pixel( xc-x, yc+y )\
+	pixel( xc+x, yc-y )\
+	pixel( xc-x, yc-y )\
+	local p = rySq - (rxSq * ry) + (0.25 * rxSq)\
+	while (px < py) do\
+		x = x + 1\
+		px = px + 2 * rySq\
+		if (p < 0) then\
+			p = p + rySq + px\
+		else\
+			y = y - 1\
+			py = py - 2 * rxSq;\
+			p = p + rySq + px - py;\
+		end\
+		pixel( xc+x, yc+y )\
+		pixel( xc-x, yc+y )\
+		pixel( xc+x, yc-y )\
+		pixel( xc-x, yc-y )\
+	end\
+	p = rySq*(x+0.5)*(x+0.5) + rxSq*(y-1)*(y-1) - rxSq*rySq\
+	while (y > 0) do\
+		y = y - 1\
+		py = py - 2 * rxSq\
+		if (p > 0) then\
+			p = p + rxSq - py\
+		else\
+			x = x + 1\
+			px = px + 2 * rySq\
+			p = p + rxSq - py + px\
+		end\
+		pixel( xc+x, yc+y )\
+		pixel( xc-x, yc+y )\
+		pixel( xc+x, yc-y )\
+		pixel( xc-x, yc-y )\
+	end\
+end\
+\
+return function( options )\
+	--[[\
+		number x\
+		number y\
+		number width\
+		number height\
+		number colour\
+		number textColour\
+		string character\
+		boolean filled\
+		drawable/buffer target\
+	]]\
+\
+	options.width = options.width or options.w\
+	options.height = options.height or options.h\
+	options.colour = options.colour or options.bc or options.col\
+	options.textColour = options.textColour or options.tc or options.colour\
+	options.character = options.character or options.char or \" \"\
+	options.target = options.target or drawable.current()\
+\
+	checkArg( options, {\
+		x = \"number\";\
+		y = \"number\";\
+		width = \"number\";\
+		height = \"number\";\
+		colour = \"number\";\
+		textColour = \"number\";\
+		character = \"string\";\
+		target = { \"drawable\", \"buffer\" };\
+	} )\
+\
+	if options.filled then\
+		filledellipse( options.x, options.y, options.width, options.height, options.colour, options.textColour, options.character, options.target )\
+	else\
+		outlineellipse( options.x, options.y, options.width, options.height, options.colour, options.textColour, options.character, options.target )\
+	end\
+end"
+files["image"] = "\
+return function( options )\
+	--[[\
+		number x\
+		number y\
+		Image image\
+		number width\
+		number height\
+		drawable/buffer target\
+	]]\
+\
+	options.width = options.width or options.w or options.image.width\
+	options.height = options.height or options.h or options.image.height\
+	options.target = options.target or drawable.current()\
+\
+	checkArg( options, {\
+		x = \"number\";\
+		y = \"number\";\
+		image = \"Image\";\
+		width = \"number\";\
+		height = \"number\";\
+		target = { \"drawable\", \"buffer\" };\
+	} )\
+\
+	local sx, sy = options.image.width / options.width, options.image.height / options.height\
+	for _x = 0, options.width - 1 do\
+		for _y = 0, options.height - 1 do\
+			local bc, tc, char = image:getPixel(\
+				math.min( math.max( _x * sx + 1, 1 ), options.image.width ),\
+				math.min( math.max( _y * sy + 1, 1 ), options.image.height )\
+			)\
+			if bc then\
+				options.target:setPixel( x + _x, y + _y, bc, tc, char )\
+			end\
+		end\
+	end\
+end"
+files["line"] = "\
+local correction = .67\
+\
+local function filledcirc( x, y, r, bc, tc, char, target )\
+\
+	local r2 = ( r + .5 ) ^ 2\
+	for _x = x - r, x + r do\
+		for _y = -r, r do\
+			if ( ( x - _x ) ^ 2 + ( _y / correction ) ^ 2 ) <= r2 then\
+				target:setPixel( _x, y + _y, bc, tc, char )\
+			end\
+		end\
+	end\
+end\
+\
+local function outlinecirc( x, y, r, bc, tc, char, target )\
+\
+	local function pixel( x, y )\
+		target:setPixel( x, y, bc, tc, char )\
+	end\
+\
+	local c = 2 * math.pi * r\
+	local n = 2 * math.pi * 2 / c\
+	local c8 = c / 8\
+	for i = 0, c8 do\
+		local _x, _y = math.sin( i * n ) * r, math.cos( i * n ) * r\
+		pixel( x + _x, y + _y * correction )\
+		pixel( x + _x, y - _y * correction )\
+		pixel( x - _x, y + _y * correction )\
+		pixel( x - _x, y - _y * correction )\
+		pixel( x + _y, y + _x * correction )\
+		pixel( x - _y, y + _x * correction )\
+		pixel( x + _y, y - _x * correction )\
+		pixel( x - _y, y - _x * correction )\
+	end\
+end\
+\
+return function( options )\
+	--[[\
+		number x1\
+		number y1\
+		number x2\
+		number y2\
+		number colour\
+		number textColour\
+		string character\
+		drawable/buffer target\
+	]]\
+\
+	options.colour = options.colour or options.bc or options.col\
+	options.textColour = options.textColour or options.tc or options.colour\
+	options.character = options.character or options.char or \" \"\
+	options.target = options.target or drawable.current()\
+\
+	checkArg( options, {\
+		x1 = \"number\";\
+		y1 = \"number\";\
+		x2 = \"number\";\
+		y2 = \"number\";\
+		colour = \"number\";\
+		textColour = \"number\";\
+		character = \"string\";\
+		target = { \"drawable\", \"buffer\" };\
+	} )\
+\
+	if options.x1 > options.x2 then\
+		options.x2, options.x1 = options.x1, options.x2\
+		options.y2, options.y1 = options.y1, options.y2\
+	end\
+\
+	if options.x1 == options.x2 then\
+		for i = math.min( options.y1, options.y2 ), math.max( options.y1, options.y2 ) do\
+			options.target:setPixel( options.x1, i, options.colour, options.textColour, options.character )\
+		end\
+		return\
+	end\
+\
+	local dx, dy = options.x2 - options.x1, options.y2 - options.y1\
+	local m = dy / dx\
+	local c = options.y1 - m * options.x1\
+\
+	for x = options.x1, options.x2, math.min( 1 / math.abs( m ), 1 ) do\
+		local y = m * x + c\
+		options.target:setPixel( math.floor( x + .5 ), math.floor( y + .5 ), options.colour, options.textColour, options.character )\
+	end\
+end"
+files["point"] = "\
+return function( options )\
+	--[[\
+		number x\
+		number y\
+		number colour\
+		number textColour\
+		string character\
+		drawable/buffer target\
+	]]\
+\
+	options.colour = options.colour or options.bc or options.col\
+	options.textColour = options.textColour or options.tc or options.colour\
+	options.character = options.character or options.char or \" \"\
+	options.target = options.target or drawable.current()\
+\
+	checkArg( options, {\
+		x = \"number\";\
+		y = \"number\";\
+		colour = \"number\";\
+		textColour = \"number\";\
+		character = \"string\";\
+		target = { \"drawable\", \"buffer\" };\
+	} )\
+\
+	options.target:setPixel( options.x, options.y, options.colour, options.textColour, options.character )\
+end"
+files["rectangle"] = "\
+local function filledrect( x, y, w, h, bc, tc, char, target )\
+	for _x = x, x + w - 1 do\
+		for _y = y, y + h - 1 do\
+			target:setPixel( _x, _y, bc, tc, char )\
+		end\
+	end\
+end\
+\
+local function outlinerect( x, y, w, h, bc, tc, char, target )\
+	local x2, y2 = x + w - 1, y + h - 1\
+	for _x = x, x2 do\
+		target:setPixel( _x, y, bc, tc, char )\
+		target:setPixel( _x, y2, bc, tc, char )\
+	end\
+	for _y = y + 1, y2 - 1 do\
+		target:setPixel( x, _y, bc, tc, char )\
+		target:setPixel( x2, _y, bc, tc, char )\
+	end\
+end\
+\
+return function( options )\
+	--[[\
+		number x\
+		number y\
+		number width\
+		number height\
+		number colour\
+		number textColour\
+		string character\
+		boolean filled\
+		drawable/buffer target\
+	]]\
+\
+	options.width = options.width or options.w\
+	options.height = options.height or options.h\
+	options.colour = options.colour or options.bc or options.col\
+	options.textColour = options.textColour or options.tc or options.colour\
+	options.character = options.character or options.char or \" \"\
+	options.target = options.target or drawable.current()\
+\
+	checkArg( options, {\
+		x = \"number\";\
+		y = \"number\";\
+		width = \"number\";\
+		height = \"number\";\
+		colour = \"number\";\
+		textColour = \"number\";\
+		character = \"string\";\
+		target = { \"drawable\", \"buffer\" };\
+	} )\
+\
+	if options.filled then\
+		filledrect( options.x, options.y, options.width, options.height, options.colour, options.textColour, options.character, options.target )\
+	else\
+		outlinerect( options.x, options.y, options.width, options.height, options.colour, options.textColour, options.character, options.target )\
+	end\
+end"
+files["text"] = "\
+return function( options )\
+	--[[\
+		number x\
+		number y\
+		number width\
+		number height\
+		number colour\
+		number textColour\
+		string text\
+		string align\
+		boolean filled\
+		boolean wrap\
+		drawable/buffer target\
+	]]\
+\
+	options.width = options.width or options.w or ( type( options.text ) == \"string\" and #options.text )\
+	options.height = options.height or options.h or 1\
+	options.colour = options.colour or options.bc or options.col\
+	options.textColour = options.textColour or options.tc or options.colour\
+	options.target = options.target or drawable.current()\
+\
+	checkArg( options, {\
+		x = \"number\";\
+		y = \"number\";\
+		width = \"number\";\
+		height = \"number\";\
+		colour = \"number\";\
+		textColour = \"number\";\
+		text = \"string\";\
+		target = { \"drawable\", \"buffer\" };\
+	} )\
+\
+	local lines\
+	if options.wrap then\
+		lines = sutils.wordwrap( options.text, options.width, options.height, options.align, options.width, options.height )\
+	else\
+		lines = sutils.wordwrap( options.text:gsub( \"\\n\", \" \" ), nil, 1, options.align, options.width, options.height )\
+	end\
+\
+	if options.filled then\
+		rectangle {\
+			x = options.x;\
+			y = options.y;\
+			width = options.width;\
+			height = options.height;\
+			colour = options.colour;\
+			filled = true;\
+			target = options.target;\
+		}\
+	end\
+\
+	y = y + ( lines.padding.vertical or 0 )\
+\
+	for line = 1, #lines do\
+		lines[line] = lines[line]:gsub( \"\\n$\", \"\" )\
+		local px, py = x + ( lines.padding[line] or 0 ), y + line - 1\
+		for char = 1, #lines[line] do\
+			options.target:setPixel( px, py, 0, options.textColour, lines[line]:sub( char, char ) )\
+			px = px + 1\
+		end\
+	end\
+end"
+public["circle"] = runfile "circle"
+public["ellipse"] = runfile "ellipse"
+public["image"] = runfile "image"
+public["line"] = runfile "line"
+public["point"] = runfile "point"
+public["rectangle"] = runfile "rectangle"
+public["text"] = runfile "text"
+return public

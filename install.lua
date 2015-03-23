@@ -1,8 +1,12 @@
 
 local packages = {
+	buffer = true;
 	class = true;
 	clipboard = true;
+	draw = true;
+	drawable = true;
 	filesystem = true;
+	graphics = true;
 	IEEE754 = true;
 	lex = true;
 	network = true;
