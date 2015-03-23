@@ -64,8 +64,8 @@ function newTask( name )
 	t.threads = {}
 	t.name = name or "unnamed task"
 
-	function t:newThread( f )
-		local thread = newThread( f )
+	function t:newThread( f, name )
+		local thread = newThread( f, name )
 		thread.environment = self.environment
 		function thread.onException( t, err )
 			if type( self.onException ) == "function" then
