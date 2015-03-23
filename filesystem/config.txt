@@ -28,7 +28,7 @@ SOFTWARE.
 ]];
 
 dependencies = {
-	{ name = "sutils", path = "sutils", url = "http://benedictallen.net/cc/packages/sutils" };
+	{ name = "sutils", path = "sutils", url = "https://raw.githubusercontent.com/awsumben13/Misc-Packages/master/build/sutils" };
 };
 
 main = "main";
