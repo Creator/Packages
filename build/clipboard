@@ -1,0 +1,24 @@
+ -- clipboard 1.0.2 by Benedict Allen
+ --[[ The MIT License (MIT)
+
+Copyright (c) 2015 Benedict Allen
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+ ]]
+local e="clipboard" local t=setmetatable({},{__index=getfenv()})t._G=t local a={} local function o(i) if a[i]then local n,s=loadstring(a[i],"["..e.."] "..i..".lua")if not n then error(s,0)end local h=setmetatable({},{__index=t}) setfenv(n,h)local r,d=pcall(n)if not r then error(d,0)end if d==nil then d={} for l,u in pairs(h)do d[l]=u end end t[i]=d return d else return error"file not found"end end a.main="local e=false function set(t,a)e={mode=t,data=a}end function get() if e then return e.mode,e.data end return\"empty\"end function clear()e=false end"return o"main"

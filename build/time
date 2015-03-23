@@ -1,0 +1,24 @@
+ -- time 1.0.1 by Benedict Allen
+ --[[ The MIT License (MIT)
+
+Copyright (c) 2015 Benedict Allen
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+ ]]
+local e="time"local t=setmetatable({},{__index=getfenv()}) t._G=t local a={} local function o(i) if a[i]then local n,s=loadstring(a[i],"["..e.."] "..i..".lua")if not n then error(s,0)end local h=setmetatable({},{__index=t}) setfenv(n,h)local r,d=pcall(n)if not r then error(d,0)end if d==nil then d={} for l,u in pairs(h)do d[l]=u end end t[i]=d return d else return error"file not found"end end a.main="local t,o=os,math local n=o.floor local s=24*60*60 local r=365*s local l=r+s local u=4*r+s local c=4 local m=1970 local f={-1,30,58,89,119,150,180,211,242,272,303,333,364}local w={}for e=1,2 do w[e]=f[e]end for e=3,13 do w[e]=f[e]+1 end local function y(e)local a,i,h,d,j,x,z,_ local E=f _=e a=n(_/u)_=_-a*u a=a*4+m if _>=r then a=a+1 _=_-r if _>=r then a=a+1 _=_-r if _>=l then a=a+1 _=_-l else E=w end end end i=n(_/s)_=_-i*s local h=1 while E[h]<i do h=h+1 end h=h-1 local d=i-E[h]j=(n(e/s)+ c)%7 x=n(_/3600)_=_-x*3600 z=n(_/60) _=_-z*60 return a,i+1,h,d,j,x,z,_ end local p,v,b local function g() if not p or t.clock()-b>300 then pcall(function() local e=http.get\"http://lbphacker.hu/cctime.php\"if not e then return false end p=tonumber(e.readAll()) if not p then return false end v=t.clock()e.close()b=t.clock()end)end end function getTime(e)g()if p then local a,i,h,l,d,f,q,j=y(p+o.floor(t.clock()-v)+ (e or 0)*3600)return{h=f,m=q,s=j}end return{h=o.floor( t.time()/60),m=t.time()%60,s=0}end local k={31,28,31,30,31,30,31,31,30,31,30,31} function getDate(e)g() if p then local d,q,j,l,x,f,z,_=y(p+ o.floor(t.clock()-v)+ (e or 0)*3600)return{y=d,j=q,m=j,d=l,w=x}end local a=t.day()local i=12 local h=o.floor(a/365)a=a-h*365 for w=1,#k do if a<k[w]then i=w break else a=a- k[w]end end return {y=h,j=t.day(),m=i,d=a,w=t.day()%7}end function isConnected()return not not p end"return o"main"

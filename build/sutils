@@ -1,0 +1,24 @@
+ -- sutils 1.0.1 by Benedict Allen
+ --[[ The MIT License (MIT)
+
+Copyright (c) 2015 Benedict Allen
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+ ]]
+local e="sutils" local t=setmetatable({},{__index=getfenv()})t._G=t local a={} local function o(i) if a[i]then local n,s=loadstring(a[i],"["..e.."] "..i..".lua")if not n then error(s,0)end local h=setmetatable({},{__index=t}) setfenv(n,h)local r,d=pcall(n)if not r then error(d,0)end if d==nil then d={} for l,u in pairs(h)do d[l]=u end end t[i]=d return d else return error"file not found"end end a.main="local e,t=table,math function gfind(o,i,n)local s={}local h={o:find(i,n)}while h[1]do e.insert(s,h)h={o:find(i, h[2]+1)}end local r=0 return function()r=r+1 if s[r]then return unpack(s[r])end end end function camelCase(o) for i in gfind(o,\" %w\")do o=o:sub(1,i).. o:sub(i+1,i+1):upper()..o:sub(i+2)end return o:sub(1,1):upper()..o:sub(2)end function split(o,i,n)local s=1 local h={} for r,d in gfind(o,i,n)do e.insert(h,o:sub(s,r-1))s=d+1 end e.insert(h,o:sub(s))return h end function linewrap(o,i)local n=0 for h=1,i+1 do n=n+ (o:sub(h,h)==\"\\t\"and 4 or 1)if n>i+1 then break end if o:sub(h,h)==\"\\n\"then return o:sub(1,h),o:sub(h+1)end end if# o:gsub(\"\\t\",\"    \")<=i then return o,false end local s for h,r in gfind(o,\"%s+\")do if# o:sub(1,h):gsub(\"\\t\",\"    \")>i+1 then break end s=r end if s then return o:sub(1,s),o:sub(s+1)end local n=0 for h=1,#o do n=n+ ( o:sub(h,h)==\"\\t\"and 4 or 1)if n>i then return o:sub(1,t.max(h-1,1)),o:sub(t.max(h-1,1)+1)end end end function wordwrap(o,i,n,s,h,r)local d={} if i then local l while o do l,o=linewrap(o,i)e.insert(d,l)end else d=split(o,\"\\n\")for l=1,#d-1 do d[l]=d[l]..\"\\n\"end end if n then while#d>n do e.remove(d,#d)end end d.padding={} if s then local l,n=s:match\"(%w+), ?(%w+)\" if l then if r and (l==\"middle\"or l==\"centre\"or l==\"center\")then d.padding.vertical=t.floor(r/2-#d/2)elseif r and l==\"bottom\"then d.padding.vertical=r-#d end if h and (n==\"middle\"or n==\"centre\"or n==\"center\")then for u=1,#d do d.padding[u]=t.floor(h/2- #d[u]:gsub(\"\\n$\",\"\")/2)end elseif h and n==\"right\"then for u=1,#d do d.padding[u]=h-#d[u]:gsub(\"\\n$\",\"\")end else for u=1,#d do d.padding[u]=0 end end end end return d end local function a(o)local i=2*o:lower():byte()-1 if o:upper()==o then return i+1 end return i end function weight(o) local i=0 for n=1,#o do i=i+a(o:sub(n,n))*256^ (1-n)end return i end"return o"main"

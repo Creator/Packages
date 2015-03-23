@@ -1,0 +1,8 @@
+
+name = "IEEE754";
+version = "1.0.1";
+author = "lbphacker";
+
+main = "main";
+
+release = true;

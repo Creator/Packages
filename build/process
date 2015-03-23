@@ -1,0 +1,24 @@
+ -- process 1.0.1 by Benedict Allen
+ --[[ The MIT License (MIT)
+
+Copyright (c) 2015 Benedict Allen
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+ ]]
+local e="process" local t=setmetatable({},{__index=getfenv()})t._G=t local a={} local function o(i) if a[i]then local n,s=loadstring(a[i],"["..e.."] "..i..".lua")if not n then error(s,0)end local h=setmetatable({},{__index=t}) setfenv(n,h)local r,d=pcall(n)if not r then error(d,0)end if d==nil then d={} for l,u in pairs(h)do d[l]=u end end t[i]=d return d else return error"file not found"end end a.main="local e,t,a,o=getfenv,setmetatable,coroutine,table local i={} function newThread(n,s)local h={}h.state=\"running\"h.name= s or\"unnamed thread\" h.environment=t({},{__index=e(2)}) setfenv(n,t({},{__index=function(r,d)return h.environment[d]end,__newindex=function(r,d,l) h.environment[d]=l end}))h.func=n h.co=a.create(n)function h:stop()self.state=\"stopped\"end function h:pause()if self.state==\"running\"then self.state=\"paused\"end end function h:resume()if self.state==\"paused\"then self.state=\"running\"end end function h:restart()self.state=\"running\"self.co=a.create(self.func)end function h:update(...)if self.state~=\"running\"then return end local r,d=a.resume(self.co,...) if not r then self.state=\"stopped\"if type(self.onException)==\"function\"then self:onException(d)end end if a.status(self.co)==\"dead\"then self.state=\"stopped\"if type(self.onFinish)==\"function\"then self:onFinish()end end end o.insert(i,1,h)return h end function newTask(n)local s={}s.environment=t({},{__index=e(2)})s.threads={}s.name=n or \"unnamed task\" function s:newThread(h)local r=newThread(h) r.environment=self.environment function r.onException(s,d)if type(self.onException)==\"function\"then self.onException(s,d)end end function r.onFinish(s,d) if type(self.onFinish)==\"function\"then self.onFinish(s,d)end end o.insert(self.threads,r)return r end function s:stop() for h=#self.threads,1,-1 do self.threads[h]:stop()end end function s:pause()for h=#self.threads,1,-1 do self.threads[h]:pause()end end function s:resume() for h=# self.threads,1,-1 do self.threads[h]:resume()end end function s:restart()for h=#self.threads,1,-1 do self.threads[h]:restart()end end function s:update(...) for h=# self.threads,1,-1 do self.threads[h]:update(...)end end function s:removeDeadThreads()for h=#self.threads,1,-1 do if self.threads[h].state==\"dead\"then o.remove(self.threads,h)end end end function s:count()return#self.threads end function s:list()local s={}for h=1,#self.threads do s[h]=self.threads[h]end return s end return s end function resume(...) for n=#i,1,-1 do i[n]:update(...)if i[n].state==\"stopped\"then i[n].state=\"dead\" o.remove(i,n)end end end function count()return#i end function list()local n={}for s=1,#i do n[s]=i[s]end return n end"return o"main"
